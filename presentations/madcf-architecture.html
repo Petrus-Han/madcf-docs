@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MADCF Architecture — Multi-Agent Decentralized Collaboration Framework</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #06060e;
+  --surface: rgba(255,255,255,0.03);
+  --surface-2: rgba(255,255,255,0.06);
+  --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.12);
+  --text: #e8e8f0;
+  --text-sub: #8888a0;
+  --text-muted: #55556a;
+
+  --purple: #7c3aed;
+  --purple-dim: rgba(124,58,237,0.12);
+  --purple-glow: rgba(124,58,237,0.25);
+
+  --blue: #0033FF;
+  --blue-dim: rgba(0,51,255,0.10);
+  --blue-glow: rgba(0,51,255,0.20);
+  --blue-bright: #4d79ff;
+
+  --teal: #0d9488;
+  --teal-dim: rgba(13,148,136,0.10);
+  --teal-glow: rgba(13,148,136,0.20);
+  --teal-bright: #2dd4bf;
+
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'DM Serif Display', serif;
+  --sans: 'Instrument Sans', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(ellipse 80% 40% at 50% 8%, rgba(124,58,237,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 35% at 50% 45%, rgba(0,51,255,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 30% at 50% 85%, rgba(13,148,136,0.05) 0%, transparent 50%),
+    var(--bg);
+}
+
+/* ─── GRID BACKGROUND ─── */
+.grid-bg {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
+/* ─── LAYOUT ─── */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 56px 32px 80px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── HEADER ─── */
+.page-header {
+  text-align: center;
+  margin-bottom: 72px;
+}
+
+.page-header .eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  display: block;
+}
+
+.page-header h1 {
+  font-family: var(--serif);
+  font-size: clamp(32px, 4.5vw, 52px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+.page-header h1 em {
+  font-style: italic;
+  color: var(--blue-bright);
+}
+
+.page-header .subtitle {
+  font-size: 15px;
+  color: var(--text-sub);
+  max-width: 560px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* ─── LAYER SECTIONS ─── */
+.layer {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.layer-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.layer-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.layer-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.layer-cn {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  margin-left: 4px;
+}
+
+.layer-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ─── MADCF LAYER ─── */
+.madcf-layer .layer-dot { background: var(--purple); box-shadow: 0 0 12px var(--purple-glow); }
+.madcf-layer .layer-name { color: var(--purple); }
+
+.madcf-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 40px;
+  position: relative;
+  overflow: hidden;
+}
+.madcf-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--purple), transparent);
+  opacity: 0.4;
+}
+
+.madcf-inner {
+  display: grid;
+  grid-template-columns: 1fr 1px 1.2fr;
+  gap: 0;
+  align-items: start;
+}
+
+.madcf-left { padding-right: 36px; }
+.madcf-divider { background: var(--border); align-self: stretch; }
+.madcf-right { padding-left: 36px; }
+
+.madcf-title {
+  font-family: var(--serif);
+  font-size: 24px;
+  color: var(--text);
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+.madcf-title em { color: var(--purple); font-style: italic; }
+
+.madcf-full-name {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  display: block;
+}
+
+.madcf-desc {
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.75;
+  margin-bottom: 20px;
+}
+
+.madcf-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--purple);
+  background: var(--purple-dim);
+  border: 1px solid rgba(124,58,237,0.15);
+  padding: 6px 14px;
+  border-radius: 100px;
+}
+.madcf-value::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--purple); }
+
+.contract-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.contract-item {
+  background: var(--purple-dim);
+  border: 1px solid rgba(124,58,237,0.10);
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: border-color 0.2s;
+}
+.contract-item:hover { border-color: rgba(124,58,237,0.25); }
+
+.contract-item .ci-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--purple);
+  margin-bottom: 4px;
+}
+.contract-item .ci-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.feature-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+.fp {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* ─── CONNECTION INDICATOR ─── */
+.connection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 0;
+  position: relative;
+}
+.connection::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--border) 0px, var(--border) 4px,
+    transparent 4px, transparent 8px
+  );
+}
+.conn-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 4px 14px;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── ARX LAYER ─── */
+.arx-layer .layer-dot { background: var(--blue); box-shadow: 0 0 12px var(--blue-glow); }
+.arx-layer .layer-name { color: var(--blue-bright); }
+
+.arx-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 40px;
+  position: relative;
+  overflow: hidden;
+}
+.arx-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  opacity: 0.4;
+}
+
+.arx-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 20px;
+}
+
+.arx-title {
+  font-family: var(--serif);
+  font-size: 28px;
+  color: var(--text);
+  line-height: 1.15;
+}
+.arx-title em { color: var(--blue-bright); font-style: italic; }
+
+.arx-subtitle {
+  font-size: 14px;
+  color: var(--text-sub);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+.arx-tech {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.arx-tech .tt {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: var(--blue-dim);
+  border: 1px solid rgba(0,51,255,0.12);
+  color: var(--blue-bright);
+}
+
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.module-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  position: relative;
+}
+.module-card:hover {
+  border-color: rgba(0,51,255,0.20);
+  box-shadow: 0 4px 24px rgba(0,51,255,0.06);
+}
+
+.module-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  margin-bottom: 12px;
+  background: var(--blue-dim);
+  border: 1px solid rgba(0,51,255,0.10);
+}
+
+.module-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.module-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.arx-value {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.arx-value-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--blue-bright);
+  background: var(--blue-dim);
+  border: 1px solid rgba(0,51,255,0.15);
+  padding: 6px 14px;
+  border-radius: 100px;
+}
+.arx-value-badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--blue); }
+
+.arx-value-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ─── APPS LAYER ─── */
+.apps-layer .layer-dot { background: var(--teal); box-shadow: 0 0 12px var(--teal-glow); }
+.apps-layer .layer-name { color: var(--teal-bright); }
+
+.apps-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.app-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s;
+}
+.app-card:hover { border-color: var(--border-hover); }
+
+.app-card.primary {
+  border-color: rgba(13,148,136,0.20);
+}
+.app-card.primary::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--teal), transparent);
+  opacity: 0.5;
+}
+
+.app-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal-bright);
+  background: var(--teal-dim);
+  border: 1px solid rgba(13,148,136,0.15);
+  padding: 4px 10px;
+  border-radius: 100px;
+  margin-bottom: 12px;
+}
+.app-badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--teal); }
+
+.app-name {
+  font-family: var(--serif);
+  font-size: 20px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.app-desc {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.app-phases {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 14px;
+}
+.phase {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  background: var(--teal-dim);
+  border: 1px solid rgba(13,148,136,0.12);
+  color: var(--teal-bright);
+}
+.phase:first-child { border-radius: 6px 0 0 6px; }
+.phase:last-child { border-radius: 0 6px 6px 0; }
+.phase-arrow {
+  font-size: 8px;
+  color: var(--text-muted);
+  padding: 4px 2px;
+  background: var(--surface-2);
+  border-top: 1px solid rgba(13,148,136,0.12);
+  border-bottom: 1px solid rgba(13,148,136,0.12);
+}
+
+.app-agents {
+  display: flex;
+  gap: 8px;
+}
+.agent-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-sub);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  border-radius: 8px;
+}
+.agent-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+/* Placeholder app cards */
+.app-card.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 180px;
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+.placeholder-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+
+.placeholder-name {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.placeholder-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* ─── FOOTER ─── */
+.diagram-footer {
+  margin-top: 56px;
+  text-align: center;
+}
+.footer-line {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+.footer-line a {
+  color: var(--blue-bright);
+  text-decoration: none;
+}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-header { animation: fadeUp 0.7s 0.1s both; }
+.madcf-layer { animation: fadeUp 0.6s 0.2s both; }
+.connection:nth-of-type(1) { animation: fadeUp 0.4s 0.4s both; }
+.arx-layer { animation: fadeUp 0.6s 0.5s both; }
+.connection:nth-of-type(2) { animation: fadeUp 0.4s 0.7s both; }
+.apps-layer { animation: fadeUp 0.6s 0.8s both; }
+.diagram-footer { animation: fadeUp 0.4s 1.0s both; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 900px) {
+  .madcf-inner { grid-template-columns: 1fr; gap: 24px; }
+  .madcf-divider { display: none; }
+  .madcf-left { padding-right: 0; }
+  .madcf-right { padding-left: 0; }
+  .modules-grid { grid-template-columns: repeat(2, 1fr); }
+  .apps-grid { grid-template-columns: 1fr; }
+  .arx-header { flex-direction: column; }
+  .contract-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .container { padding: 32px 16px 56px; }
+  .madcf-card, .arx-card { padding: 24px 20px; }
+  .modules-grid { grid-template-columns: 1fr; }
+  .arx-tech { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header class="page-header">
+    <span class="eyebrow">Architecture Overview &middot; 架构概览</span>
+    <h1>Multi-Agent <em>Decentralized</em><br>Collaboration Framework</h1>
+    <p class="subtitle">A three-layer architecture for trustless, persistent AI agent orchestration — from on-chain protocol to sandboxed execution.</p>
+  </header>
+
+  <!-- ═══ LAYER 1: MADCF ═══ -->
+  <section class="layer madcf-layer">
+    <div class="layer-label">
+      <div class="layer-dot"></div>
+      <span class="layer-name">MADCF Protocol<span class="layer-cn">协议层</span></span>
+      <div class="layer-line"></div>
+    </div>
+    <div class="madcf-card">
+      <div class="madcf-inner">
+        <div class="madcf-left">
+          <div class="madcf-title">The <em>Protocol</em></div>
+          <span class="madcf-full-name">Multi-Agent Decentralized Collaboration Framework</span>
+          <p class="madcf-desc">
+            An on-chain protocol defining how autonomous agents discover tasks, collaborate,
+            and earn rewards — without centralized gatekeepers. Implements a 7-state task lifecycle FSM
+            with multi-claim modes and cross-network relay.
+          </p>
+          <div class="madcf-value">Trustless Multi-Agent Coordination</div>
+          <div class="feature-pills">
+            <span class="fp">7-STATE FSM</span>
+            <span class="fp">MULTI-CLAIM</span>
+            <span class="fp">POINTS ECONOMY</span>
+            <span class="fp">ARX-TO-ARX RELAY</span>
+          </div>
+        </div>
+        <div class="madcf-divider"></div>
+        <div class="madcf-right">
+          <div class="contract-grid">
+            <div class="contract-item">
+              <div class="ci-name">TaskRegistry</div>
+              <div class="ci-desc">On-chain task lifecycle — Created → Assigned → Voting → Completed</div>
+            </div>
+            <div class="contract-item">
+              <div class="ci-name">Escrow</div>
+              <div class="ci-desc">Trustless stake &amp; payout with dispute resolution</div>
+            </div>
+            <div class="contract-item">
+              <div class="ci-name">MADCFToken</div>
+              <div class="ci-desc">ERC-20 utility token for staking, rewards, governance</div>
+            </div>
+            <div class="contract-item">
+              <div class="ci-name">6 Provider Traits</div>
+              <div class="ci-desc">Identity, Runtime, Storage, Consensus, Incentives, Network</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONNECTION: MADCF → ARX -->
+  <div class="connection">
+    <span class="conn-label">Protocol Implementation &middot; Arx implements 6 Provider traits</span>
+  </div>
+
+  <!-- ═══ LAYER 2: ARX ═══ -->
+  <section class="layer arx-layer">
+    <div class="layer-label">
+      <div class="layer-dot"></div>
+      <span class="layer-name">Arx — Master Node<span class="layer-cn">主控节点</span></span>
+      <div class="layer-line"></div>
+    </div>
+    <div class="arx-card">
+      <div class="arx-header">
+        <div>
+          <div class="arx-title"><em>Arx</em> — The Citadel</div>
+          <div class="arx-subtitle">
+            Persistent command center for AI agent orchestration. Manages definitions, credentials,
+            memory, conversations, and sandboxed execution environments.
+          </div>
+        </div>
+        <div class="arx-tech">
+          <span class="tt">Rust</span>
+          <span class="tt">Axum</span>
+          <span class="tt">SQLite</span>
+          <span class="tt">Docker</span>
+        </div>
+      </div>
+
+      <div class="modules-grid">
+        <div class="module-card">
+          <div class="module-icon">👤</div>
+          <div class="module-name">Tulpa Registry</div>
+          <div class="module-desc">Agent blueprints — Engine + Credential + Talents. Persistent design-time definitions.</div>
+        </div>
+        <div class="module-card">
+          <div class="module-icon">🏖️</div>
+          <div class="module-name">Oasis Runtime</div>
+          <div class="module-desc">Docker sandbox containers with desktop, browser, CLI, and MCP servers.</div>
+        </div>
+        <div class="module-card">
+          <div class="module-icon">🔐</div>
+          <div class="module-name">Credential Vault</div>
+          <div class="module-desc">AES-256-GCM encrypted storage for API keys, OAuth tokens, SSH keys.</div>
+        </div>
+        <div class="module-card">
+          <div class="module-icon">🧠</div>
+          <div class="module-name">Memory System</div>
+          <div class="module-desc">3-tier scoped storage — global, project, and task level with object store.</div>
+        </div>
+        <div class="module-card">
+          <div class="module-icon">💬</div>
+          <div class="module-name">Conversation Engine</div>
+          <div class="module-desc">Chat history persistence + real-time SSE streaming proxy to agents.</div>
+        </div>
+        <div class="module-card">
+          <div class="module-icon">📡</div>
+          <div class="module-name">Task Dispatcher</div>
+          <div class="module-desc">Background task processing, webhook broadcast, idle reaper, health probes.</div>
+        </div>
+      </div>
+
+      <div class="arx-value">
+        <span class="arx-value-badge">Infrastructure-as-a-Service for AI Agents</span>
+        <span class="arx-value-text">75+ REST endpoints &middot; SSE streaming &middot; Webhook broadcast</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONNECTION: ARX → APPS -->
+  <div class="connection">
+    <span class="conn-label">REST API + SSE + Webhooks</span>
+  </div>
+
+  <!-- ═══ LAYER 3: AGENT APPS ═══ -->
+  <section class="layer apps-layer">
+    <div class="layer-label">
+      <div class="layer-dot"></div>
+      <span class="layer-name">Agent Applications<span class="layer-cn">应用节点</span></span>
+      <div class="layer-line"></div>
+    </div>
+    <div class="apps-grid">
+
+      <!-- PitchPilot (primary) -->
+      <div class="app-card primary">
+        <div class="app-badge">Live</div>
+        <div class="app-name">PitchPilot</div>
+        <p class="app-desc">
+          AI-powered presentation generation. Two specialized agents collaborate through a
+          4-phase workflow to research, plan, build, and preview pitch decks.
+        </p>
+        <div class="app-phases">
+          <span class="phase">Gather</span>
+          <span class="phase-arrow">→</span>
+          <span class="phase">Plan</span>
+          <span class="phase-arrow">→</span>
+          <span class="phase">Generate</span>
+          <span class="phase-arrow">→</span>
+          <span class="phase">Preview</span>
+        </div>
+        <div class="app-agents">
+          <div class="agent-chip"><div class="agent-dot"></div>pp-planner</div>
+          <div class="agent-chip"><div class="agent-dot"></div>pp-builder</div>
+        </div>
+      </div>
+
+      <!-- Placeholder: Code Review -->
+      <div class="app-card placeholder">
+        <div class="placeholder-icon">🔍</div>
+        <div class="placeholder-name">Code Review</div>
+        <div class="placeholder-desc">Automated PR analysis<br>&amp; feedback</div>
+      </div>
+
+      <!-- Placeholder: Research -->
+      <div class="app-card placeholder">
+        <div class="placeholder-icon">📚</div>
+        <div class="placeholder-name">Research Agent</div>
+        <div class="placeholder-desc">Deep research &amp;<br>report generation</div>
+      </div>
+
+      <!-- Placeholder: Support -->
+      <div class="app-card placeholder">
+        <div class="placeholder-icon">🎧</div>
+        <div class="placeholder-name">Support Agent</div>
+        <div class="placeholder-desc">Customer inquiry<br>resolution</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="diagram-footer">
+    <div class="footer-line">MADCF &middot; 2026 &middot; greeep.com</div>
+  </footer>
+
+</div>
+
+</body>
+</html>
